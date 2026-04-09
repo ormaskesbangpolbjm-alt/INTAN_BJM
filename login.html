@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin - Portal Ormas Kesbangpol</title>
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-gray-50 min-h-screen flex items-center justify-center p-4 antialiased selection:bg-[#FA8112]/20 relative overflow-hidden">
+
+    <!-- Background Elements -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-[#FA8112]/10 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-[#454545]/10 rounded-full blur-3xl"></div>
+
+    <!-- Login Card -->
+    <main
+        class="bg-white/80 backdrop-blur-xl w-full max-w-md rounded-3xl shadow-2xl border border-white/50 overflow-hidden relative z-10">
+
+        <div class="p-8 sm:p-10">
+            <!-- Branding -->
+            <div class="flex flex-col items-center mb-8 text-center">
+                <div
+                    class="bg-white p-3 rounded-2xl shadow-lg border border-gray-100 mb-4 w-20 h-20 flex items-center justify-center">
+                    <img src="img/logo-kesbangpol.png" alt="Logo Kesbangpol" class="h-full object-contain">
+                </div>
+                <h1 class="text-2xl font-bold text-[#454545]">Login Administrator</h1>
+                <p class="text-sm text-gray-500 mt-1">Gunakan akun Admin Anda untuk masuk.</p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label for="email" class="block text-sm font-semibold text-gray-700">Email Administrator</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206">
+                                </path>
+                            </svg>
+                        </div>
+                        <input type="email" id="email"
+                            class="pl-11 w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FA8112]/30 focus:border-[#FA8112] bg-white text-gray-800 placeholder-gray-400 font-medium transition-all"
+                            placeholder="admin@example.com" required>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label for="password" class="block text-sm font-semibold text-gray-700">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                </path>
+                            </svg>
+                        </div>
+                        <input type="password" id="password"
+                            class="pl-11 w-full px-4 py-3.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#FA8112]/30 focus:border-[#FA8112] bg-white text-gray-800 placeholder-gray-400 font-medium transition-all"
+                            placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div id="error-message" class="hidden animate-pulse">
+                    <p
+                        class="text-sm font-medium text-red-500 bg-red-50 p-3 rounded-lg border border-red-100 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="error-text">Email atau password salah!</span>
+                    </p>
+                </div>
+
+                <button type="submit" id="login-btn"
+                    class="w-full bg-[#FA8112] hover:bg-[#e07510] text-white font-bold py-4 px-6 rounded-xl shadow-[0_4px_14px_0_rgba(250,129,18,0.39)] hover:shadow-[0_6px_20px_rgba(250,129,18,0.23)] hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98] active:translate-y-0">
+                    Masuk Sekarang
+                </button>
+            </form>
+
+            <div class="mt-8 text-center">
+                <a href="index.html"
+                    class="text-sm font-medium text-gray-400 hover:text-[#FA8112] transition-colors flex items-center justify-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Kembali ke Beranda
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Libs -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+
+</html>

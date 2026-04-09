@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Verifikasi Data - Portal Ormas</title>
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-[#454545] min-h-screen antialiased selection:bg-[#FA8112]/20 flex flex-col">
+
+    <!-- Navbar / Header -->
+    <nav class="bg-white px-6 py-4 border-b border-gray-200 shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Title & Branding Kombinasi Logo -->
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <div
+                    class="flex items-center space-x-0.5 shrink-0 bg-gray-50 border border-gray-200 px-2 py-1.5 rounded-xl shadow-inner">
+                    <div class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 p-1">
+                        <img src="img/logo-bjm.png" alt="Logo Resmi Pemerintah Kota Banjarmasin"
+                            class="h-full w-full object-contain">
+                    </div>
+                    <div class="h-6 sm:h-7 w-px bg-gray-300 mx-1.5"></div>
+                    <div class="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 p-1.5">
+                        <img src="img/logo-kesbangpol.png" alt="Logo Resmi Kesatuan Bangsa dan Politik"
+                            class="h-full w-full object-contain">
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-[#454545]">Dashboard Verifikasi Data
+                        Ormas</h1>
+                    <p class="text-xs sm:text-sm font-medium text-gray-500">Sistem Informasi Kesbangpol Kota Banjarmasin
+                    </p>
+                </div>
+            </div>
+
+            <!-- Profil Singkat Navbar Kanan (Hanya Desktop) -->
+            <div class="flex items-center space-x-3 border-l pl-5 border-gray-200">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-bold text-[#454545]">Admin Pusat</p>
+                    <p class="text-xs text-gray-500">Superuser</p>
+                </div>
+                <div
+                    class="w-10 h-10 rounded-full bg-gray-100 border border-gray-300 flex items-center justify-center shadow-inner">
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+                <!-- Tombol Logout -->
+                <button onclick="window.handleLogout()" class="ml-2 p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all border border-red-100 shadow-sm flex items-center space-x-2 font-bold text-sm" title="Keluar dari Sistem">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="hidden sm:inline">Logout</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 overflow-hidden">
+
+        <!-- Header Tabel & Tombol Aksi -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
+            <div>
+                <h2 class="text-lg font-bold text-[#454545]">Daftar Pengajuan Masuk</h2>
+                <p class="text-sm text-gray-500">Tinjau, validasi dokumen, dan hubungi pemohon yang terdaftar.</p>
+            </div>
+
+            <!-- Tombol Export Excel -->
+            <button
+                class="bg-[#FA8112] hover:bg-[#e07510] text-white font-bold py-2.5 px-5 rounded-lg shadow-[0_4px_14px_0_rgba(250,129,18,0.39)] hover:shadow-[0_6px_20px_rgba(250,129,18,0.23)] hover:-translate-y-0.5 transition-all duration-200 active:scale-95 flex items-center space-x-2 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span>Export ke Excel</span>
+            </button>
+        </div>
+
+        <!-- Tabel Container -->
+        <div class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+            <!-- Wrapper Scroll Horizontal Mencegah Overflow pada Layar Kecil -->
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left text-sm whitespace-nowrap">
+                    <!-- Table Header -->
+                    <thead class="bg-[#454545] text-white font-medium">
+                        <tr>
+                            <th scope="col" class="px-5 py-4 w-12 text-center border-b border-[#333333]">No</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">Organisasi (Ormas)
+                            </th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">Nama Lengkap
+                                (Hasil OCR)</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333] text-center">Jenis
+                                Kelamin</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">NIK KTP</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">Alamat</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">Nomor WA</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">Nama Bank</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">Nomor Rekening
+                            </th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333]">No. NPWP</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333] text-center">
+                                Dokumen</th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333] text-center">Status
+                            </th>
+                            <th scope="col" class="px-5 py-4 tracking-wide border-b border-[#333333] text-center">Aksi
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <!-- Table Body (Akan Diisi Otomatis via JS) -->
+                    <tbody class="divide-y divide-gray-100">
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer Tabel / Pagination Ringkas -->
+            <div
+                class="px-6 py-4 border-t border-gray-200 bg-white flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 text-sm">
+                <span class="text-gray-500 font-medium">Menampilkan data...</span>
+
+                <nav class="flex items-center space-x-1">
+                    <button
+                        class="px-3 py-1.5 border border-gray-300 rounded-md text-gray-400 bg-gray-50 cursor-not-allowed font-medium"
+                        disabled>Sebelumnya</button>
+                    <button
+                        class="px-3.5 py-1.5 border border-[#FA8112] rounded-md bg-[#FA8112] text-white font-bold shadow-sm">1</button>
+                    <button
+                        class="px-3 py-1.5 border border-gray-300 rounded-md text-gray-400 bg-gray-50 cursor-not-allowed font-medium"
+                        disabled>Selanjutnya</button>
+                </nav>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Memanggil eksternal JS secara Berurutan (PENTING AGAR SUPABASE TIDAK ERROR) -->
+    <!-- Library ExcelJS untuk cetak tabel XLSX resmi -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+
+</body>
+
+</html>
