@@ -80,7 +80,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (item.foto_npwp_url) {
                     docLinks += `<a href="${item.foto_npwp_url}" target="_blank" class="px-2.5 py-1.5 bg-gray-100 border border-gray-200 hover:bg-[#FA8112]/15 hover:text-[#FA8112] hover:border-[#FA8112] text-gray-600 rounded-md text-xs font-bold transition-all shadow-sm mx-0.5" title="Buka NPWP di Tab Baru">NPWP</a>`;
                 }
-                // Dokumen Buku Rekening ditutup karena kini input string konvensional
+                
+                // Dimunculkan kembali sesuai permintaan (Buka link Buku Rekening)
+                if (item.foto_rekening_url) {
+                    docLinks += `<a href="${item.foto_rekening_url}" target="_blank" class="px-2.5 py-1.5 bg-gray-100 border border-gray-200 hover:bg-[#FA8112]/15 hover:text-[#FA8112] hover:border-[#FA8112] text-gray-600 rounded-md text-xs font-bold transition-all shadow-sm mx-0.5" title="Buka Buku Rekening di Tab Baru">REKENING</a>`;
+                }
 
                 // 3. Logika Nomor Whatsapp ('0' diganti menhadi -> '62' Format Internasional Default)
                 let linkWa = item.no_wa || '';

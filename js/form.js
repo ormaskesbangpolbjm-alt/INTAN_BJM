@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setupImagePreview('file-ktp', 'container-ktp');
     setupImagePreview('file-npwp', 'container-npwp');
-    // setupImagePreview untuk Rekening ditiadakan karena beralih ke input manual
+    setupImagePreview('file-rekening', 'container-rekening');
 
 
 
@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputOcrNama = document.getElementById('ocr-nama');
     const inputOcrAlamat = document.getElementById('ocr-alamat');
     const inputOcrJk = document.getElementById('ocr-jk');
+    const inputOcrBank = document.getElementById('ocr-bank');
     const inputOcrNorek = document.getElementById('ocr-norek');
     const inputOcrNpwp = document.getElementById('ocr-npwp');
 
@@ -104,15 +105,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const fileKtp = document.getElementById('file-ktp').files[0];
+        const fileRekening = document.getElementById('file-rekening').files[0];
         
         const inputNamaOrmas = document.getElementById('input-nama-ormas').value.trim();
-        const inputBank = document.getElementById('input-bank').value;
-        const inputNorekManual = document.getElementById('input-norek-manual').value.trim();
         const noWa = document.getElementById('input-wa').value.trim();
 
         // VALIDASI AWAL KELENGKAPAN BERKAS
-        if (!fileKtp || !inputNamaOrmas || !inputBank || !inputNorekManual || !noWa) {
-            alert('Mohon lengkapi Nama Ormas, dokumen KTP, Instansi Bank, Rekening, dan Nomor Whatsapp sebelum diverifikasi!');
+        if (!fileKtp || !fileRekening || !inputNamaOrmas || !noWa) {
+            alert('Mohon lengkapi Nama Ormas, lampirkan dokumen KTP & Rekening, beserta Nomor Whatsapp sebelum diverifikasi!');
             return;
         }
 
@@ -277,8 +277,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // PROSES 2: PEREKAMAN INPUT REKENING MANUAL (TANPA OCR)
-            let foundRekening = `${inputBank} - ${inputNorekManual}`;
+            // PROSES 2: EKSTRAKSI BUKU REKENING (Untuk menebak Norek murni)
+            let foundNorekMurni = '';
+            if (fileRekening) {
+                try {
+                    const resultRekening = await Tesseract.recognize(fileRekening, 'ind', {
+                        logger: m => console.log('Tesseract Log (Rekening):', m)
+                    });
+                    
+                    const cleanRekening = resultRekening.data.text.replace(/[^\d]/g, '');
+                    // Cari digit berjejer 9 sampai 16 karakter yang seringkali adalah Norek
+                    const norekMatch = cleanRekening.match(/\d{9,16}/);
+                    if (norekMatch) foundNorekMurni = norekMatch[0];
+                } catch (err) {
+                    console.warn('Gagal memindai buku rekening:', err);
+                }
+            }
 
             // PROSES 3: EKSTRAKSI NPWP (Jika diunggah)
             let foundNpwp = '';
@@ -309,7 +323,8 @@ document.addEventListener('DOMContentLoaded', function() {
             inputOcrNama.value = foundNama;
             inputOcrAlamat.value = foundAlamat;
             inputOcrJk.value = foundJk;
-            inputOcrNorek.value = foundRekening;
+            inputOcrBank.value = ""; // Default kosong
+            inputOcrNorek.value = foundNorekMurni;
             inputOcrNpwp.value = foundNpwp; // Masukkan format resmi ke Modal OCR
 
         } catch (error) {
@@ -321,6 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
             inputOcrNama.value = '';
             inputOcrAlamat.value = '';
             inputOcrJk.value = '';
+            inputOcrBank.value = '';
             inputOcrNorek.value = '';
             inputOcrNpwp.value = ''; // Kosongkan
         }
@@ -371,22 +387,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const finalNama = inputOcrNama.value.trim();
         const finalAlamat = inputOcrAlamat.value.trim();
         const finalJk = inputOcrJk.value.trim();
-        const finalNorek = inputOcrNorek.value.trim();
+        const finalBank = inputOcrBank.value;
+        const finalNorekManual = inputOcrNorek.value.trim();
         const finalNpwp = inputOcrNpwp.value.trim();
         const noWa = document.getElementById('input-wa').value.trim();
         
         const fileKtp = document.getElementById('file-ktp').files[0];
         const fileNpwp = document.getElementById('file-npwp').files[0];
+        const fileRekening = document.getElementById('file-rekening').files[0];
 
-        if (!fileKtp) {
-            alert('File KTP gagal dimuat. Harap unggah ulang file KTP Anda!');
+        if (!fileKtp || !fileRekening) {
+            alert('File KTP / Rekening gagal dimuat. Harap periksa ulang form!');
             return;
         }
 
-        if (!finalNik || !finalNama || !finalAlamat || !finalNorek) {
-            alert('Data wajib (NIK, Nama, Alamat, Rekening) hasil pindaian tidak boleh kosong!');
+        if (!finalNik || !finalNama || !finalAlamat || !finalBank || !finalNorekManual) {
+            alert('Data wajib (Instansi Bank, Norek, NIK, Nama, Alamat) di dalam form validasi ini tidak boleh kosong!');
             return;
         }
+        
+        const finalNorek = `${finalBank} - ${finalNorekManual}`;
 
         // Validasi Ekstra untuk NPWP sesuai pola (15 digit yang di format)
         const npwpRegex = /^\d{2}\.\d{3}\.\d{3}\.\d{1}-\d{3}\.\d{3}$/;
@@ -421,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnConfirmOcr.innerText = "Mengamankan Dokumen...";
             const urlKtp = await uploadFile(fileKtp, 'ktp');
             const urlNpwp = fileNpwp ? await uploadFile(fileNpwp, 'npwp') : null;
-            const urlRekening = null; // Rekening kini cuma data string, tak ada foto fisik yang harus diedarkan
+            const urlRekening = await uploadFile(fileRekening, 'rekening');
 
             // Pastikan WA terstandar format internasional agar tombol admin bekerja
             let formatWa = noWa;
@@ -435,12 +455,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     { 
                         nama_ormas: finalNamaOrmas,
                         no_wa: formatWa, 
-                        no_rekening: finalNorek, // Divalidasi otomatis saat OCR
-                        nama_lengkap: finalNama, // Disuplai oleh OCR Modal
-                        alamat: finalAlamat,     // Disuplai oleh OCR Modal
-                        jenis_kelamin: finalJk,  // Laki-laki / Perempuan
-                        nik: finalNik,           // Disuplai oleh OCR Modal
-                        npwp: finalNpwp,         // Pola format 99.999.999.9-999.999
+                        no_rekening: finalNorek, // Disusun dari modal (Bank + Norek)
+                        nama_lengkap: finalNama, 
+                        alamat: finalAlamat,     
+                        jenis_kelamin: finalJk,  
+                        nik: finalNik,           
+                        npwp: finalNpwp,         
                         foto_ktp_url: urlKtp, 
                         foto_npwp_url: urlNpwp, 
                         foto_rekening_url: urlRekening 
