@@ -271,15 +271,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Memperbaiki urutan kolom, dan menambahkan tempat khusus untuk NOMOR NPWP resmi
+            // Memperbaiki urutan kolom, dan menambahkan tempat khusus sesuai instruksi
             const headers = [
-                'NO',
-                'NAMA LENGKAP',
-                'NOMOR WHATSAPP',
-                'NOMOR REKENING',
-                'NOMOR NPWP',
-                'STATUS',
-                'TANGGAL PENDAFTARAN'
+                'No',
+                'Nama ormas',
+                'Nama lengkap',
+                'Jenis kelamin',
+                'NIK Penduduk',
+                'Alamat',
+                'No WhatsApp',
+                'Nama bank',
+                'No rekening',
+                'No NPWP',
+                'Status',
+                'Tanggal pendaftaran'
             ];
 
             // Langkah 1: Merakit Array Object Javascript secara kaku (Sesuai Konvensi ExcelJS)
@@ -306,9 +311,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     no: idx + 1,
                     ormas: item.nama_ormas || '-',
                     nama: item.nama_lengkap || '-',
+                    jk: item.jenis_kelamin || '-',
                     nik: item.nik || '-',
                     alamat: item.alamat || '-',
-                    jk: item.jenis_kelamin || '-',
                     whatsapp: item.no_wa || '-',
                     bank: bankInstansi,
                     rekening: noRekMurni,
@@ -324,18 +329,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Menyusun Struktur Kolom Laporan Sesuai Instruksi Tambahan (NIK, Alamat, Bank Pisah)
             sheet.columns = [
-                { header: 'NO', key: 'no', width: 5 },
-                { header: 'NAMA ORMAS', key: 'ormas', width: 35 },
-                { header: 'NAMA LENGKAP', key: 'nama', width: 30 },
-                { header: 'JENIS KELAMIN', key: 'jk', width: 15 },
-                { header: 'NIK PENDUDUK', key: 'nik', width: 20 },
-                { header: 'ALAMAT', key: 'alamat', width: 35 },
-                { header: 'NOMOR WHATSAPP', key: 'whatsapp', width: 20 },
-                { header: 'NAMA BANK', key: 'bank', width: 20 },
-                { header: 'NOMOR REKENING', key: 'rekening', width: 22 },
-                { header: 'NOMOR NPWP', key: 'npwp', width: 25 },
-                { header: 'STATUS', key: 'status', width: 15 },
-                { header: 'TANGGAL PENDAFTARAN', key: 'tanggal', width: 22 }
+                { header: 'No', key: 'no', width: 5 },
+                { header: 'Nama ormas', key: 'ormas', width: 35 },
+                { header: 'Nama lengkap', key: 'nama', width: 30 },
+                { header: 'Jenis kelamin', key: 'jk', width: 15 },
+                { header: 'NIK Penduduk', key: 'nik', width: 20 },
+                { header: 'Alamat', key: 'alamat', width: 35 },
+                { header: 'No WhatsApp', key: 'whatsapp', width: 20 },
+                { header: 'Nama bank', key: 'bank', width: 20 },
+                { header: 'No rekening', key: 'rekening', width: 22 },
+                { header: 'No NPWP', key: 'npwp', width: 25 },
+                { header: 'Status', key: 'status', width: 15 },
+                { header: 'Tanggal pendaftaran', key: 'tanggal', width: 22 }
             ];
 
             // Mewarnai Header Gelap dan Teks Tebal (Tampilan Rapi Bebas Manual)
