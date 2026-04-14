@@ -171,9 +171,9 @@
     <!-- Modal Validasi OCR (Sembunyi by Default) -->
     <div id="modal-ocr"
         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300">
-        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300"
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]"
             id="modal-ocr-content">
-            <div class="bg-[#454545] px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div class="bg-[#454545] px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
                 <h3 class="text-lg font-bold text-white flex items-center">
                     <svg class="w-5 h-5 mr-2 text-[#FA8112]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -182,7 +182,7 @@
                     Validasi Hasil Pindai (OCR)
                 </h3>
             </div>
-            <div class="p-6 space-y-4">
+            <div class="p-6 space-y-4 overflow-y-auto flex-1">
                 <p class="text-sm text-gray-600 bg-orange-50 p-3 rounded-lg border border-orange-100 leading-relaxed">
                     Sistem mendeteksi data dari dokumen KTP/Buku Rekening Anda. <strong>Mohon periksa dan
                         perbaiki</strong> jika ada angka/huruf yang kurang akurat.
@@ -254,7 +254,7 @@
                         required>
                 </div>
             </div>
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex space-x-3">
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex space-x-3 shrink-0">
                 <button type="button" id="btn-cancel-ocr"
                     class="w-1/3 px-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-100 transition active:scale-95">Batal</button>
                 <button type="button" id="btn-confirm-ocr"
