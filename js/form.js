@@ -236,7 +236,14 @@ Jika tidak terbaca, isi "".`;
                 foundNama = d.nama || '';
                 foundAlamat = d.alamat || '';
                 foundJk = d.jenis_kelamin || '';
-            } catch (err) { console.warn('Parse KTP gagal:', err); }
+            } catch (err) { 
+                console.warn('Parse KTP gagal:', err);
+                if (err.message.includes('API Error')) {
+                    resetLoadingState();
+                    alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}\n\nPastikan API Key Gemini Anda valid dan benar.`);
+                    return;
+                }
+            }
 
             // --- Tahap 3: Baca Rekening ---
             setLoadingState('(3/3) AI Membaca Buku Rekening...');
@@ -246,7 +253,14 @@ Jika tidak terbaca, isi "".`;
                 console.log('=== GEMINI REKENING ===\n', rekText);
                 const d = JSON.parse(rekText);
                 foundNorek = d.no_rekening || '';
-            } catch (err) { console.warn('Parse Rekening gagal:', err); }
+            } catch (err) { 
+                console.warn('Parse Rekening gagal:', err); 
+                if (err.message.includes('API Error')) {
+                    resetLoadingState();
+                    alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}`);
+                    return;
+                }
+            }
 
             // --- Tahap 4: Baca NPWP (opsional) ---
             let foundNpwp = '';
@@ -256,7 +270,14 @@ Jika tidak terbaca, isi "".`;
                     console.log('=== GEMINI NPWP ===\n', npwpText);
                     const d = JSON.parse(npwpText);
                     foundNpwp = d.npwp || '';
-                } catch (err) { console.warn('Parse NPWP gagal:', err); }
+                } catch (err) { 
+                    console.warn('Parse NPWP gagal:', err); 
+                    if (err.message.includes('API Error')) {
+                        resetLoadingState();
+                        alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}`);
+                        return;
+                    }
+                }
             }
 
             // Validasi: KTP tidak terbaca sama sekali
