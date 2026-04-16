@@ -1,0 +1,10 @@
+# Konfigurasi sensitif (API keys, credentials)
+js/config.js
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
