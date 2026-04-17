@@ -65,8 +65,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // KONFIGURASI GEMINI AI (key diambil dari config.js)
     // ==========================================
     const GEMINI_API_KEY = window.GEMINI_API_KEY || '';
-    const GEMINI_MODEL = 'gemini-2.5-flash';
-    const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
 
     const PROMPT_KTP = `Kamu adalah AI ahli membaca KTP Indonesia. Analisis foto KTP ini dan ekstrak data berikut.
 Kembalikan HANYA JSON valid (tanpa markdown, tanpa penjelasan).
@@ -149,22 +148,40 @@ Jika tidak terbaca, isi "".`;
             generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
         };
 
-        const response = await fetch(GEMINI_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        let lastError = null;
+        for (const model of GEMINI_MODELS) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errText = await response.text();
+                    lastError = new Error(`Gemini API Error ${response.status}: ${errText}`);
+                    
+                    // Jika error bukan karena server penuh (misal 503/429), langsung hentikan
+                    if (response.status !== 503 && response.status !== 429 && response.status !== 500) {
+                        throw lastError;
+                    }
+                    console.warn(`[Fallback] Model ${model} sibuk, mencoba model lain...`);
+                    continue; // Coba model berikutnya
+                }
 
-        if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Gemini API Error ${response.status}: ${errText}`);
+                const result = await response.json();
+                let text = result.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+                return text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
+            } catch (err) {
+                lastError = err;
+                // Jika error karena Invalid Key dsb, jangan retry
+                if (err.message.includes('400') || err.message.includes('403') || err.message.includes('404')) {
+                    throw err;
+                }
+            }
         }
-
-        const result = await response.json();
-        let text = result.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        // Bersihkan kalau Gemini membungkus dengan markdown
-        text = text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
-        return text;
+        throw lastError; // Lempar jika semua model gagal
     }
 
     /**
@@ -236,7 +253,7 @@ Jika tidak terbaca, isi "".`;
                 foundNama = d.nama || '';
                 foundAlamat = d.alamat || '';
                 foundJk = d.jenis_kelamin || '';
-            } catch (err) { 
+            } catch (err) {
                 console.warn('Parse KTP gagal:', err);
                 if (err.message.includes('API Error')) {
                     resetLoadingState();
@@ -253,8 +270,8 @@ Jika tidak terbaca, isi "".`;
                 console.log('=== GEMINI REKENING ===\n', rekText);
                 const d = JSON.parse(rekText);
                 foundNorek = d.no_rekening || '';
-            } catch (err) { 
-                console.warn('Parse Rekening gagal:', err); 
+            } catch (err) {
+                console.warn('Parse Rekening gagal:', err);
                 if (err.message.includes('API Error')) {
                     resetLoadingState();
                     alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}`);
@@ -270,8 +287,8 @@ Jika tidak terbaca, isi "".`;
                     console.log('=== GEMINI NPWP ===\n', npwpText);
                     const d = JSON.parse(npwpText);
                     foundNpwp = d.npwp || '';
-                } catch (err) { 
-                    console.warn('Parse NPWP gagal:', err); 
+                } catch (err) {
+                    console.warn('Parse NPWP gagal:', err);
                     if (err.message.includes('API Error')) {
                         resetLoadingState();
                         alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}`);
