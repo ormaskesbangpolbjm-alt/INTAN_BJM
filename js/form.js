@@ -104,28 +104,112 @@ Jika tidak terbaca, isi "".`;
     }
 
     /**
-     * Resize gambar sebelum dikirim ke Gemini (tidak perlu binarisasi - AI membaca gambar natural)
+     * Baca orientasi EXIF dari binary data (byte 0-65535 saja sudah cukup)
+     * Mengembalikan nilai orientasi 1-8 (1 = normal)
+     */
+    function getExifOrientation(buffer) {
+        const view = new DataView(buffer);
+        if (view.getUint16(0, false) !== 0xFFD8) return 1; // Bukan JPEG
+        let offset = 2;
+        while (offset < view.byteLength) {
+            const marker = view.getUint16(offset, false);
+            offset += 2;
+            if (marker === 0xFFE1) { // APP1 marker (EXIF)
+                if (view.getUint32(offset += 2, false) !== 0x45786966) return 1;
+                const little = view.getUint16(offset += 6, false) === 0x4949;
+                offset += view.getUint32(offset + 4, little);
+                const tags = view.getUint16(offset, little);
+                offset += 2;
+                for (let i = 0; i < tags; i++) {
+                    if (view.getUint16(offset + (i * 12), little) === 0x0112) {
+                        return view.getUint16(offset + (i * 12) + 8, little);
+                    }
+                }
+            } else if ((marker & 0xFF00) !== 0xFF00) break;
+            else offset += view.getUint16(offset, false);
+        }
+        return 1;
+    }
+
+    /**
+     * Resize + Koreksi Rotasi EXIF gambar sebelum dikirim ke Gemini.
+     * Penting untuk foto dari kamera HP yang sering tersimpan miring/terbalik.
      */
     const resizeForGemini = (file) => new Promise((resolve) => {
         if (!file) return resolve(null);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const MAX = 1280;
-                let w = img.width, h = img.height;
-                if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-                else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
-                const canvas = document.createElement('canvas');
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                resolve(canvas.toDataURL('image/jpeg', 0.88));
+
+        // Baca sebagian kecil file untuk mendeteksi orientasi EXIF
+        const sliceReader = new FileReader();
+        sliceReader.onload = (sliceEvt) => {
+            const orientation = getExifOrientation(sliceEvt.target.result);
+
+            const fullReader = new FileReader();
+            fullReader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Tentukan dimensi output (putar jika orientasi >= 5)
+                    const MAX = 1024; // Lebih kecil dari 1280 agar lebih cepat dikirim
+                    let sw = img.width, sh = img.height;
+                    const needRotate = orientation >= 5 && orientation <= 8;
+                    let tw = needRotate ? sh : sw;
+                    let th = needRotate ? sw : sh;
+
+                    // Scale down ke MAX
+                    if (tw > MAX) { th = Math.round(th * MAX / tw); tw = MAX; }
+                    if (th > MAX) { tw = Math.round(tw * MAX / th); th = MAX; }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = tw;
+                    canvas.height = th;
+                    const ctx = canvas.getContext('2d');
+
+                    // Terapkan transformasi berdasarkan orientasi EXIF
+                    ctx.save();
+                    switch (orientation) {
+                        case 2: ctx.transform(-1, 0, 0, 1, tw, 0); break;
+                        case 3: ctx.transform(-1, 0, 0, -1, tw, th); break;
+                        case 4: ctx.transform(1, 0, 0, -1, 0, th); break;
+                        case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
+                        case 6: ctx.transform(0, 1, -1, 0, th, 0); break;
+                        case 7: ctx.transform(0, -1, -1, 0, th, tw); break;
+                        case 8: ctx.transform(0, -1, 1, 0, 0, tw); break;
+                        default: break; // orientation 1 = normal
+                    }
+                    ctx.drawImage(img, 0, 0, needRotate ? th : tw, needRotate ? tw : th);
+                    ctx.restore();
+
+                    // Kualitas adaptif: file besar → kompresi lebih tinggi
+                    const quality = file.size > 3 * 1024 * 1024 ? 0.75 : 0.82;
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = () => resolve(e.target.result);
+                img.src = e.target.result;
             };
-            img.onerror = () => resolve(e.target.result);
-            img.src = e.target.result;
+            fullReader.onerror = () => resolve(null);
+            fullReader.readAsDataURL(file);
         };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
+        sliceReader.onerror = () => {
+            // Fallback tanpa koreksi rotasi
+            const r = new FileReader();
+            r.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX = 1024;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+                    else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.80));
+                };
+                img.onerror = () => resolve(e.target.result);
+                img.src = e.target.result;
+            };
+            r.readAsDataURL(file);
+        };
+        // Baca hanya 64KB pertama untuk parsing EXIF (lebih efisien)
+        sliceReader.readAsArrayBuffer(file.slice(0, 65536));
     });
 
     /**
