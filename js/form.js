@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     container.classList.remove('border-dashed');
                     container.classList.add('border-solid', 'border-[#FA8112]');
                 };
-                reader.onerror = function () { alert('Gagal membaca preview gambar.'); };
+                reader.onerror = async function () { await showToast('error', 'Gagal membaca preview gambar.'); };
                 reader.readAsDataURL(file);
             }
         });
@@ -76,7 +76,7 @@ Jika benar-benar tidak terbaca sama sekali, isi string kosong "".`;
     const PROMPT_REKENING = `Kamu adalah AI ahli membaca buku rekening / kartu ATM bank Indonesia.
 Kembalikan HANYA JSON valid (tanpa markdown).
 Format:
-{"no_rekening":"nomor rekening angka saja tanpa spasi"}
+{"bank":"NAMA INSTANSI BANK (misal: Bank Kalsel, BCA, BRI, BNI, Mandiri)", "no_rekening":"nomor rekening angka saja tanpa spasi"}
 Jika tidak terlihat, isi "".`;
 
     const PROMPT_NPWP = `Kamu adalah AI ahli membaca kartu NPWP Indonesia. Ekstrak nomor NPWP.
@@ -293,7 +293,7 @@ Jika tidak terbaca, isi "".`;
         e.preventDefault();
 
         if (!window.supabaseClient) {
-            alert('Sistem belum terhubung ke Supabase. Periksa file config.js Anda.');
+            await showToast('error', 'Sistem belum terhubung ke Supabase. Periksa file config.js Anda.');
             return;
         }
 
@@ -302,20 +302,14 @@ Jika tidak terbaca, isi "".`;
         const fileNpwp = document.getElementById('file-npwp').files[0];
         const inputNamaOrmas = document.getElementById('input-nama-ormas').value.trim();
         const noWa = document.getElementById('input-wa').value.trim();
-        const selectedBank = inputBankDepan ? inputBankDepan.value.trim() : '';
-
         // Validasi form depan
         if (!fileKtp || !fileRekening || !inputNamaOrmas || !noWa) {
-            alert('Mohon lengkapi Nama Ormas, lampirkan dokumen KTP & Rekening, beserta Nomor WhatsApp sebelum diverifikasi!');
-            return;
-        }
-        if (!selectedBank) {
-            alert('Mohon pilih Nama Instansi Bank terlebih dahulu!');
+            await showToast('warning', 'Mohon lengkapi Nama Ormas, lampirkan dokumen KTP & Rekening, beserta Nomor WhatsApp sebelum diverifikasi!');
             return;
         }
         const waRegex = /^(08|\+628)\d{8,11}$/;
         if (!waRegex.test(noWa)) {
-            alert('Nomor WhatsApp tidak valid! Pastikan diawali 08 atau +628 dengan panjang 10–13 digit.');
+            await showToast('warning', 'Nomor WhatsApp tidak valid! Pastikan diawali 08 atau +628 dengan panjang 10–13 digit.');
             return;
         }
 
@@ -341,7 +335,7 @@ Jika tidak terbaca, isi "".`;
                 console.warn('Parse KTP gagal:', err);
                 if (err.message.includes('API Error')) {
                     resetLoadingState();
-                    alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}\n\nPastikan API Key Gemini Anda valid dan benar.`);
+                    await showToast('error', `Gagal Terhubung ke AI:\n\n${err.message}\n\nPastikan API Key Gemini Anda valid dan benar.`);
                     return;
                 }
             }
@@ -349,16 +343,18 @@ Jika tidak terbaca, isi "".`;
             // --- Tahap 3: Baca Rekening ---
             setLoadingState('(3/3) AI Membaca Buku Rekening...');
             let foundNorek = '';
+            let foundBank = '';
             try {
                 const rekText = await scanWithGemini(imgRekening, PROMPT_REKENING);
                 console.log('=== GEMINI REKENING ===\n', rekText);
                 const d = JSON.parse(rekText);
                 foundNorek = d.no_rekening || '';
+                foundBank = d.bank || '';
             } catch (err) {
                 console.warn('Parse Rekening gagal:', err);
                 if (err.message.includes('API Error')) {
                     resetLoadingState();
-                    alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}`);
+                    await showToast('error', `Gagal Terhubung ke AI:\n\n${err.message}`);
                     return;
                 }
             }
@@ -375,7 +371,7 @@ Jika tidak terbaca, isi "".`;
                     console.warn('Parse NPWP gagal:', err);
                     if (err.message.includes('API Error')) {
                         resetLoadingState();
-                        alert(`🚨 Gagal Terhubung ke AI:\n\n${err.message}`);
+                        await showToast('error', `Gagal Terhubung ke AI:\n\n${err.message}`);
                         return;
                     }
                 }
@@ -384,7 +380,7 @@ Jika tidak terbaca, isi "".`;
             // Validasi: KTP sebagian besar tidak terbaca
             if (!foundNik || !foundNama) {
                 resetLoadingState();
-                const lanjutManual = confirm('🚨 KTP Tidak Terbaca Penuh \n(Gambar mungkin buram/silau)\n\nApakah Anda ingin mengisi sisa data secara MANUAL?\n\n📝 Klik [OK] untuk Isi Manual\n📸 Klik [Batal/Cancel] untuk Unggah Ulang Foto');
+                const lanjutManual = await showConfirm('KTP Tidak Terbaca Penuh \n(Gambar mungkin buram/silau)\n\nApakah Anda ingin mengisi sisa data secara MANUAL?\n\n📝 Klik [Ya, Lanjutkan] untuk Isi Manual\n📸 Klik [Batal] untuk Unggah Ulang Foto');
                 
                 if (!lanjutManual) {
                     return; // Hentikan proses, biarkan user upload ulang
@@ -410,6 +406,26 @@ Jika tidak terbaca, isi "".`;
                     </select>`;
             }
 
+            // Render field Bank di modal
+            const ocrBankReadonly = document.getElementById('ocr-bank-readonly');
+            const bankDropdownContainer = document.getElementById('bank-dropdown-container');
+            const labelBank = document.getElementById('label-bank');
+            
+            if (foundBank) {
+                labelBank.className = "block text-sm font-semibold text-gray-700";
+                labelBank.innerText = "Nama Instansi Bank";
+                ocrBankReadonly.value = foundBank;
+                ocrBankReadonly.classList.remove('hidden');
+                bankDropdownContainer.classList.add('hidden');
+                if(inputBankDepan) inputBankDepan.value = '';
+            } else {
+                labelBank.className = "block text-sm font-semibold text-red-600";
+                labelBank.innerText = "Nama Instansi Bank (Pilih Manual) *";
+                ocrBankReadonly.classList.add('hidden');
+                ocrBankReadonly.value = '';
+                bankDropdownContainer.classList.remove('hidden');
+            }
+
             // Isi form modal
             inputOcrOrmas.value = inputNamaOrmas;
             inputOcrNik.value = foundNik;
@@ -420,13 +436,21 @@ Jika tidak terbaca, isi "".`;
 
         } catch (error) {
             console.error('Gemini Error:', error);
-            alert('⚠️ AI Gemini kesulitan membaca dokumen.\n\nAnda dapat mengisi data secara manual di form berikut.');
+            await showToast('warning', 'AI Gemini kesulitan membaca dokumen.\n\nAnda dapat mengisi data secara manual di form berikut.', 'Tutup Ke Form Manual');
             inputOcrOrmas.value = inputNamaOrmas || '';
             inputOcrNik.value = '';
             inputOcrNama.value = '';
             inputOcrAlamat.value = '';
             inputOcrNorek.value = '';
             inputOcrNpwp.value = '';
+            
+            const ocrBankReadonly = document.getElementById('ocr-bank-readonly');
+            const bankDropdownContainer = document.getElementById('bank-dropdown-container');
+            const labelBank = document.getElementById('label-bank');
+            labelBank.className = "block text-sm font-semibold text-red-600";
+            labelBank.innerText = "Nama Instansi Bank (Pilih Manual) *";
+            ocrBankReadonly.classList.add('hidden');
+            bankDropdownContainer.classList.remove('hidden');
         }
 
         // Tampilkan modal validasi
@@ -469,7 +493,13 @@ Jika tidak terbaca, isi "".`;
         const finalNama = inputOcrNama.value.trim();
         const finalAlamat = inputOcrAlamat.value.trim();
         const finalJk = document.getElementById('ocr-jk').value.trim();
-        const finalBank = inputBankDepan ? inputBankDepan.value.trim() : '';
+        const ocrBankReadonly = document.getElementById('ocr-bank-readonly');
+        let finalBank = '';
+        if (ocrBankReadonly && !ocrBankReadonly.classList.contains('hidden')) {
+            finalBank = ocrBankReadonly.value.trim();
+        } else if (inputBankDepan) {
+            finalBank = inputBankDepan.value.trim();
+        }
         const finalNorekManual = inputOcrNorek.value.trim();
         const finalNpwp = inputOcrNpwp.value.trim();
         const noWa = document.getElementById('input-wa').value.trim();
@@ -478,11 +508,11 @@ Jika tidak terbaca, isi "".`;
         const fileRekening = document.getElementById('file-rekening').files[0];
 
         if (!fileKtp || !fileRekening) {
-            alert('File KTP / Rekening gagal dimuat. Harap periksa ulang form!');
+            await showToast('error', 'File KTP / Rekening gagal dimuat. Harap periksa ulang form!');
             return;
         }
         if (!finalNik || !finalNama || !finalAlamat || !finalBank || !finalNorekManual) {
-            alert('Data wajib (NIK, Nama, Alamat, Bank, Nomor Rekening) tidak boleh kosong!');
+            await showToast('warning', 'Data wajib (NIK, Nama, Alamat, Bank, Nomor Rekening) tidak boleh kosong!');
             return;
         }
 
@@ -490,7 +520,7 @@ Jika tidak terbaca, isi "".`;
 
         const npwpRegex = /^\d{2}\.\d{3}\.\d{3}\.\d{1}-\d{3}\.\d{3}$/;
         if (finalNpwp !== '' && !npwpRegex.test(finalNpwp)) {
-            alert('Format NPWP tidak benar! Harus berupa pola: 99.999.999.9-999.999');
+            await showToast('warning', 'Format NPWP tidak benar! Harus berupa pola: 99.999.999.9-999.999');
             return;
         }
 
@@ -507,7 +537,7 @@ Jika tidak terbaca, isi "".`;
             if (errCek) throw new Error('Gagal memeriksa riwayat: ' + errCek.message);
             if (riwayatSama && riwayatSama.length > 0) {
                 const st = riwayatSama[0].status === 'Valid' ? 'Telah DISAHKAN' : 'Sedang MENUNGGU VALIDASI';
-                alert(`⚠️ PERMOHONAN DITOLAK (DATA GANDA)\n\nNIK ${finalNik} sudah terdaftar.\nStatus: ${st}.\n\nSilakan pantau informasi dari pihak Kesbangpol.`);
+                await showToast('error', `PERMOHONAN DITOLAK (DATA GANDA)\n\nNIK ${finalNik} sudah terdaftar.\nStatus: ${st}.\n\nSilakan pantau informasi dari pihak Kesbangpol.`);
                 return;
             }
 
@@ -544,7 +574,7 @@ Jika tidak terbaca, isi "".`;
                 throw error;
             }
 
-            alert('✅ Berkas berhasil divalidasi dan dikirim!');
+            await showToast('success', 'Berkas berhasil divalidasi dan dikirim!');
             modalOcr.classList.add('opacity-0', 'pointer-events-none');
             form.reset();
             resetPreviewContainer('container-ktp');
@@ -560,7 +590,7 @@ Jika tidak terbaca, isi "".`;
 
         } catch (error) {
             console.error('Proses Pengiriman Terhenti:', error);
-            alert('Gagal mengirim data: ' + error.message);
+            await showToast('error', 'Gagal mengirim data: ' + error.message);
         } finally {
             btnConfirmOcr.disabled = false;
             btnConfirmOcr.innerText = originalConfirmText;

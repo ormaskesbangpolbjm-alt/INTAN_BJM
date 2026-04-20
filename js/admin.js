@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Pastikan koneksi global Supabase ada dari config.js
     if (!window.supabaseClient) {
-        alert('Library Supabase belum dimuat. Pastikan file config.js terbaca dengan sempurna.');
+        showToast('error', 'Library Supabase belum dimuat. Pastikan file config.js terbaca dengan sempurna.');
         return;
     }
 
@@ -172,7 +172,8 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     window.terimaPeserta = async function (id) {
         // Melindungi operator salah klik lewat konfirmasi visual bawaan
-        if (!confirm('Anda yakin seluruh berkas dokumen tersebut sudah sah dan pendaftar ini di-ACC?')) return;
+        const isConfirmed = await showConfirm('Anda yakin seluruh berkas dokumen tersebut sudah sah dan pendaftar ini di-ACC?');
+        if (!isConfirmed) return;
 
         try {
             // Meluncurkan Query UPDATE berbasis 'id' relasional
@@ -184,12 +185,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (error) throw error;
 
             // Status Berhasil diubah
-            alert('Pemohon berhasil ditandai sebagai Valid!');
+            await showToast('success', 'Pemohon berhasil ditandai sebagai Valid!');
 
             // Panggil fetchData() lagi untuk merefresh UI Tabel seketika membuang tombol acc
             fetchData();
         } catch (error) {
-            alert('Gagal mengeksekusi validasi: ' + error.message);
+            await showToast('error', 'Gagal mengeksekusi validasi: ' + error.message);
         }
     };
 
@@ -200,7 +201,8 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     window.hapusPeserta = async function (id) {
         // Melindungi kehilangan data akibat salah raba tak disengaja
-        if (!confirm('🚨 PERINGATAN HATI-HATI: Tindakan ini permanen. File yang telah diunggah orang ini juga akan melayang. Lanjutkan Hapus?')) return;
+        const isConfirmed = await showConfirm('PERINGATAN HATI-HATI: Tindakan ini permanen. File yang telah diunggah orang ini juga akan melayang. Lanjutkan Hapus?');
+        if (!isConfirmed) return;
 
         try {
             // TAHAP 1: Cari referensi datanya di memori lokal tabel untuk mencomot URL fotonya
@@ -248,12 +250,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (errData) throw errData;
 
             // Status Berhasil dihapus
-            alert('Aset Foto beserta Identitasnya sukses ditumpas habis dari Database Kesbangpol!');
+            await showToast('success', 'Aset Foto beserta Identitasnya sukses ditumpas habis dari Database Kesbangpol!');
 
             // Refresh seketika
             fetchData();
         } catch (error) {
-            alert('Wah gagal menghapus, periksa izin DELETE (RLS): ' + error.message);
+            await showToast('error', 'Wah gagal menghapus, periksa izin DELETE (RLS): ' + error.message);
         }
     };
 
@@ -264,10 +266,10 @@ document.addEventListener('DOMContentLoaded', function () {
      * =========================================================
      */
     if (exportBtn) {
-        exportBtn.addEventListener('click', function () {
+        exportBtn.addEventListener('click', async function () {
             // Pencegahan unduhan kosong murni Array memory
             if (globalDataRecords.length === 0) {
-                alert('Tabel masih kosong, tidak ada data yang bisa diekstrasi.');
+                await showToast('warning', 'Tabel masih kosong, tidak ada data yang bisa diekstrasi.');
                 return;
             }
 

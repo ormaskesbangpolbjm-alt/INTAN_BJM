@@ -121,32 +121,6 @@
                     </div>
                 </div>
 
-                <!-- Nama Instansi Bank (Custom Dropdown with Logo) -->
-                <div class="space-y-2">
-                    <label class="block text-sm font-semibold text-gray-700">Nama Instansi Bank</label>
-                    <input type="hidden" id="input-bank" name="bank" required>
-                    <div class="relative">
-                        <!-- Dropdown Button -->
-                        <button type="button" id="bank-dropdown-btn"
-                            class="w-full flex items-center justify-between px-4 py-3.5 rounded-xl border border-gray-300 bg-gray-50 hover:border-[#FA8112] hover:bg-[#FA8112]/5 focus:outline-none focus:ring-2 focus:ring-[#FA8112] transition-all duration-200 text-left">
-                            <div class="flex items-center space-x-3">
-                                <div id="bank-selected-img-wrapper" class="h-7 w-10 bg-white rounded shadow-sm border border-gray-100 p-0.5 flex items-center justify-center overflow-hidden hidden">
-                                    <img id="bank-selected-img" src="" alt="" class="h-full w-full object-contain">
-                                </div>
-                                <span id="bank-selected-text" class="text-gray-400 font-medium text-sm">Pilih Bank...</span>
-                            </div>
-                            <svg id="bank-dropdown-arrow" class="w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <polyline points="6 9 12 15 18 9"></polyline>
-                            </svg>
-                        </button>
-
-                        <!-- Dropdown List -->
-                        <div id="bank-dropdown-list"
-                            class="hidden absolute z-30 w-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-                            <ul id="bank-list-ul" class="max-h-56 overflow-y-auto divide-y divide-gray-50"></ul>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Rekening -->
                 <div class="space-y-2">
@@ -259,6 +233,30 @@
                         placeholder="99.999.999.9-999.999" required>
                 </div>
 
+                <div class="space-y-1.5" id="ocr-bank-section">
+                    <label class="block text-sm font-semibold text-gray-700" id="label-bank">Nama Instansi Bank</label>
+                    <input type="text" id="ocr-bank-readonly" class="hidden w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none bg-gray-50 text-gray-800 font-bold cursor-not-allowed" readonly required>
+                    <div class="relative" id="bank-dropdown-container">
+                        <input type="hidden" id="input-bank" name="bank">
+                        <button type="button" id="bank-dropdown-btn"
+                            class="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-gray-300 bg-gray-50 hover:border-[#FA8112] hover:bg-[#FA8112]/5 focus:outline-none focus:ring-2 focus:ring-[#FA8112] transition-all duration-200 text-left">
+                            <div class="flex items-center space-x-3">
+                                <div id="bank-selected-img-wrapper" class="h-6 w-8 bg-white rounded shadow-sm border border-gray-100 p-0.5 flex items-center justify-center overflow-hidden hidden">
+                                    <img id="bank-selected-img" src="" alt="" class="h-full w-full object-contain">
+                                </div>
+                                <span id="bank-selected-text" class="text-gray-400 font-medium text-sm">Pilih Bank...</span>
+                            </div>
+                            <svg id="bank-dropdown-arrow" class="w-5 h-5 text-gray-400 transition-transform duration-200 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div id="bank-dropdown-list"
+                            class="hidden absolute z-30 w-full mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                            <ul id="bank-list-ul" class="max-h-40 overflow-y-auto divide-y divide-gray-50"></ul>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="space-y-1.5">
                     <label class="block text-sm font-semibold text-gray-700">Nomor Rekening Bank (Dari Buku Rekening)</label>
                     <input type="text" id="ocr-norek"
@@ -278,6 +276,7 @@
 
     <!-- External JS & AI Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/toast.js"></script>
     <script src="js/config.js"></script>
     <script src="js/form.js"></script>
 

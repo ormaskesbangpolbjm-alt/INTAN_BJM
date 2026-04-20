@@ -82,13 +82,14 @@ document.addEventListener('DOMContentLoaded', async function () {
      * =========================================================
      */
     window.handleLogout = async function () {
-        if (!confirm('Anda yakin ingin keluar dari sistem?')) return;
+        const isConfirmed = await showConfirm('Anda yakin ingin keluar dari sistem?');
+        if (!isConfirmed) return;
         
         try {
             await supabaseClient.auth.signOut();
             window.location.href = 'login.html';
         } catch (err) {
-            alert('Gagal logout: ' + err.message);
+            await showToast('error', 'Gagal logout: ' + err.message);
         }
     };
 
