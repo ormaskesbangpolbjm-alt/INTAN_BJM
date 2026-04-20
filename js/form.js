@@ -67,11 +67,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const GEMINI_API_KEY = window.GEMINI_API_KEY || '';
     const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
 
-    const PROMPT_KTP = `Kamu adalah AI ahli membaca KTP Indonesia. Analisis foto KTP ini dan ekstrak data berikut.
+    const PROMPT_KTP = `Kamu adalah AI ahli membaca KTP Indonesia yang sangat pintar. Analisis foto KTP ini dengan teliti. Jika foto agak buram, usahakan tebak karakter yang paling logis.
 Kembalikan HANYA JSON valid (tanpa markdown, tanpa penjelasan).
 Format:
 {"nik":"16 digit angka","nama":"NAMA LENGKAP HURUF KAPITAL","alamat":"alamat tanpa RT/RW/Kel/Kec","jenis_kelamin":"Laki-laki atau Perempuan"}
-Jika tidak terbaca, isi string kosong "".`;
+Jika benar-benar tidak terbaca sama sekali, isi string kosong "".`;
 
     const PROMPT_REKENING = `Kamu adalah AI ahli membaca buku rekening / kartu ATM bank Indonesia.
 Kembalikan HANYA JSON valid (tanpa markdown).
@@ -297,11 +297,16 @@ Jika tidak terbaca, isi "".`;
                 }
             }
 
-            // Validasi: KTP tidak terbaca sama sekali
-            if (!foundNik && !foundNama && !foundAlamat) {
+            // Validasi: KTP sebagian besar tidak terbaca
+            if (!foundNik || !foundNama) {
                 resetLoadingState();
-                alert('🚨 AI tidak dapat membaca KTP Anda.\n\nPastikan:\n• Foto tidak buram / silau\n• Seluruh KTP terlihat dalam satu frame\n• Pencahayaan cukup\n\nSilakan unggah ulang foto yang lebih jelas.');
-                return;
+                const lanjutManual = confirm('🚨 KTP Tidak Terbaca Penuh \n(Gambar mungkin buram/silau)\n\nApakah Anda ingin mengisi sisa data secara MANUAL?\n\n📝 Klik [OK] untuk Isi Manual\n📸 Klik [Batal/Cancel] untuk Unggah Ulang Foto');
+                
+                if (!lanjutManual) {
+                    return; // Hentikan proses, biarkan user upload ulang
+                }
+                // Jika user pilih OK/Manual, kita kosongkan kelamin agar tampil dropdown
+                foundJk = '';
             }
 
             // Render field Jenis Kelamin di modal
