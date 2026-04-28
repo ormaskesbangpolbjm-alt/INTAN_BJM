@@ -62,28 +62,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const inputBankDepan = document.getElementById('input-bank');
 
     // ==========================================
-    // KONFIGURASI GEMINI AI (key diambil dari config.js)
+    // KONFIGURASI LOCAL OCR BACKEND (FastAPI - Chandra)
+    // Backend harus dijalankan di sisi localhost (e.g., port 8080)
     // ==========================================
-    const GEMINI_API_KEY = window.GEMINI_API_KEY || '';
-    const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-2.5-flash'];
-
-    const PROMPT_KTP = `Kamu adalah AI ahli membaca KTP Indonesia yang sangat pintar. Analisis foto KTP ini dengan teliti. Jika foto agak buram, usahakan tebak karakter yang paling logis.
-Kembalikan HANYA JSON valid (tanpa markdown, tanpa penjelasan).
-Format:
-{"nik":"16 digit angka","nama":"NAMA LENGKAP HURUF KAPITAL","alamat":"alamat tanpa RT/RW/Kel/Kec","jenis_kelamin":"Laki-laki atau Perempuan"}
-Jika benar-benar tidak terbaca sama sekali, isi string kosong "".`;
-
-    const PROMPT_REKENING = `Kamu adalah AI ahli membaca buku rekening / kartu ATM bank Indonesia.
-Kembalikan HANYA JSON valid (tanpa markdown).
-Format:
-{"bank":"NAMA INSTANSI BANK (misal: Bank Kalsel, BCA, BRI, BNI, Mandiri)", "no_rekening":"nomor rekening angka saja tanpa spasi"}
-Jika tidak terlihat, isi "".`;
-
-    const PROMPT_NPWP = `Kamu adalah AI ahli membaca kartu NPWP Indonesia. Ekstrak nomor NPWP.
-Kembalikan HANYA JSON valid (tanpa markdown).
-Format:
-{"npwp":"XX.XXX.XXX.X-XXX.XXX"}
-Jika tidak terbaca, isi "".`;
 
     /**
      * Reset dropzone ke tampilan awal
@@ -213,59 +194,31 @@ Jika tidak terbaca, isi "".`;
     });
 
     /**
-     * Kirim gambar ke Google Gemini Vision API
+     * Kirim gambar ke Local Backend (Chandra OCR Python API)
      */
-    async function scanWithGemini(dataUrl, prompt) {
+    async function scanWithLocalOCR(dataUrl, docType) {
         if (!dataUrl) return '{}';
 
-        const mimeMatch = dataUrl.match(/^data:(image\/[a-z]+);base64,/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-        const base64Data = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-
-        const payload = {
-            contents: [{
-                parts: [
-                    { text: prompt },
-                    { inline_data: { mime_type: mimeType, data: base64Data } }
-                ]
-            }],
-            generationConfig: { temperature: 0.1, maxOutputTokens: 512 }
-        };
-
-        let lastError = null;
-        for (const model of GEMINI_MODELS) {
-            try {
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    const errText = await response.text();
-                    lastError = new Error(`Gemini API Error ${response.status}: ${errText}`);
-                    
-                    // Jika error bukan karena server penuh (misal 503/429), langsung hentikan
-                    if (response.status !== 503 && response.status !== 429 && response.status !== 500) {
-                        throw lastError;
-                    }
-                    console.warn(`[Fallback] Model ${model} sibuk, mencoba model lain...`);
-                    continue; // Coba model berikutnya
-                }
-
-                const result = await response.json();
-                let text = result.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-                return text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
-            } catch (err) {
-                lastError = err;
-                // Jika error karena Invalid Key dsb, jangan retry
-                if (err.message.includes('400') || err.message.includes('403') || err.message.includes('404')) {
-                    throw err;
-                }
+        try {
+            const response = await fetch('http://localhost:8080/api/scan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_base64: dataUrl,
+                    doc_type: docType
+                })
+            });
+            
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Backend OCR API Error ${response.status}: ${errText}`);
             }
+
+            const result = await response.json();
+            return JSON.stringify(result); // Karena pemanggil ekspektasi format string JSON
+        } catch (err) {
+            throw err;
         }
-        throw lastError; // Lempar jika semua model gagal
     }
 
     /**
@@ -324,8 +277,8 @@ Jika tidak terbaca, isi "".`;
             setLoadingState('(2/3) AI Membaca KTP...');
             let foundNik = '', foundNama = '', foundAlamat = '', foundJk = '';
             try {
-                const ktpText = await scanWithGemini(imgKtp, PROMPT_KTP);
-                console.log('=== GEMINI KTP ===\n', ktpText);
+                const ktpText = await scanWithLocalOCR(imgKtp, 'ktp');
+                console.log('=== LOCAL OCR KTP ===\n', ktpText);
                 const d = JSON.parse(ktpText);
                 foundNik = d.nik || '';
                 foundNama = d.nama || '';
@@ -345,8 +298,8 @@ Jika tidak terbaca, isi "".`;
             let foundNorek = '';
             let foundBank = '';
             try {
-                const rekText = await scanWithGemini(imgRekening, PROMPT_REKENING);
-                console.log('=== GEMINI REKENING ===\n', rekText);
+                const rekText = await scanWithLocalOCR(imgRekening, 'rekening');
+                console.log('=== LOCAL OCR REKENING ===\n', rekText);
                 const d = JSON.parse(rekText);
                 foundNorek = d.no_rekening || '';
                 foundBank = d.bank || '';
@@ -363,8 +316,8 @@ Jika tidak terbaca, isi "".`;
             let foundNpwp = '';
             if (fileNpwp && imgNpwp) {
                 try {
-                    const npwpText = await scanWithGemini(imgNpwp, PROMPT_NPWP);
-                    console.log('=== GEMINI NPWP ===\n', npwpText);
+                    const npwpText = await scanWithLocalOCR(imgNpwp, 'npwp');
+                    console.log('=== LOCAL OCR NPWP ===\n', npwpText);
                     const d = JSON.parse(npwpText);
                     foundNpwp = d.npwp || '';
                 } catch (err) {
