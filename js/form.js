@@ -203,28 +203,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (docType === 'ktp') {
             let nik = '', nama = '', alamat = '', jk = '';
-            
+
             // Ekstrak NIK (16 digit)
             const nikMatch = text.match(/\b\d{16}\b/);
             if (nikMatch) nik = nikMatch[0];
 
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                
+
                 // Ekstrak Nama
                 if ((line.includes('NAMA') || line.includes('NAMA:')) && !nama) {
                     nama = line.replace(/.*NAMA[\s:]*/, '').replace(/[^A-Z\s]/g, '').trim();
                     if (!nama && i + 1 < lines.length) {
-                        nama = lines[i+1].replace(/[^A-Z\s]/g, '').trim();
+                        nama = lines[i + 1].replace(/[^A-Z\s]/g, '').trim();
                     }
                 }
-                
+
                 // Ekstrak Alamat
                 if ((line.includes('ALAMAT') || line.includes('ALAMAT:')) && !alamat) {
                     alamat = line.replace(/.*ALAMAT[\s:]*/, '').trim();
-                    if (!alamat && i + 1 < lines.length) alamat = lines[i+1].trim();
+                    if (!alamat && i + 1 < lines.length) alamat = lines[i + 1].trim();
                 }
-                
+
                 // Ekstrak Jenis Kelamin
                 if (!jk) {
                     if (line.includes('LAKI') || line.includes('LELAKI')) jk = 'Laki-laki';
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
             result = { nik, nama, alamat, jenis_kelamin: jk };
-        } 
+        }
         else if (docType === 'npwp') {
             let npwp = '';
             // Mencari format NPWP, contoh: 99.999.999.9-999.999
@@ -240,14 +240,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (npwpMatch) {
                 npwp = npwpMatch[0].replace(/[^0-9]/g, ''); // Ambil hanya angka
                 if (npwp.length === 15) {
-                    npwp = `${npwp.substring(0,2)}.${npwp.substring(2,5)}.${npwp.substring(5,8)}.${npwp.substring(8,9)}-${npwp.substring(9,12)}.${npwp.substring(12,15)}`;
+                    npwp = `${npwp.substring(0, 2)}.${npwp.substring(2, 5)}.${npwp.substring(5, 8)}.${npwp.substring(8, 9)}-${npwp.substring(9, 12)}.${npwp.substring(12, 15)}`;
                 }
             }
             result = { npwp };
         }
         else if (docType === 'rekening') {
             let no_rekening = '', bank = '';
-            
+
             // Ekstrak no rekening: cari deretan angka panjang, minimal 9 digit
             const numbers = text.match(/\b(?:\d[ -]*){9,20}\b/g);
             if (numbers) {
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function () {
             else if (fullText.includes('KALSEL')) bank = 'Bank Kalsel';
             else if (fullText.includes('BJB')) bank = 'BJB';
             else if (fullText.includes('BPD')) bank = 'BPD';
-            
+
             result = { no_rekening, bank };
         }
 
@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', function () {
             requests: [
                 {
                     image: { content: base64Image },
-                    features: [ { type: "DOCUMENT_TEXT_DETECTION" } ]
+                    features: [{ type: "DOCUMENT_TEXT_DETECTION" }]
                 }
             ]
         };
@@ -304,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            
+
             if (!response.ok) {
                 const errText = await response.text();
                 throw new Error(`Google Vision API Error ${response.status}: ${errText}`);
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const data = await response.json();
             const textAnnotation = data.responses[0].fullTextAnnotation;
-            
+
             if (!textAnnotation || !textAnnotation.text) {
                 console.warn('Google Vision tidak menemukan teks pada ' + docType);
                 return '{}';
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.warn('Parse KTP gagal:', err);
                 if (err.message.includes('API Error')) {
                     resetLoadingState();
-                    await showToast('error', `Gagal Terhubung ke AI:\n\n${err.message}\n\nPastikan API Key Gemini Anda valid dan benar.`);
+                    await showToast('error', `Gagal Terhubung ke AI:\n\n${err.message}\n\nPastikan API Key dan Penagihan (Billing) Google Cloud Anda sudah aktif.`);
                     return;
                 }
             }
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!foundNik || !foundNama) {
                 resetLoadingState();
                 const lanjutManual = await showConfirm('KTP Tidak Terbaca Penuh \n(Gambar mungkin buram/silau)\n\nApakah Anda ingin mengisi sisa data secara MANUAL?\n\n📝 Klik [Ya, Lanjutkan] untuk Isi Manual\n📸 Klik [Batal] untuk Unggah Ulang Foto');
-                
+
                 if (!lanjutManual) {
                     return; // Hentikan proses, biarkan user upload ulang
                 }
@@ -472,14 +472,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const ocrBankReadonly = document.getElementById('ocr-bank-readonly');
             const bankDropdownContainer = document.getElementById('bank-dropdown-container');
             const labelBank = document.getElementById('label-bank');
-            
+
             if (foundBank) {
                 labelBank.className = "block text-sm font-semibold text-gray-700";
                 labelBank.innerText = "Nama Instansi Bank";
                 ocrBankReadonly.value = foundBank;
                 ocrBankReadonly.classList.remove('hidden');
                 bankDropdownContainer.classList.add('hidden');
-                if(inputBankDepan) inputBankDepan.value = '';
+                if (inputBankDepan) inputBankDepan.value = '';
             } else {
                 labelBank.className = "block text-sm font-semibold text-red-600";
                 labelBank.innerText = "Nama Instansi Bank (Pilih Manual) *";
@@ -505,7 +505,7 @@ document.addEventListener('DOMContentLoaded', function () {
             inputOcrAlamat.value = '';
             inputOcrNorek.value = '';
             inputOcrNpwp.value = '';
-            
+
             const ocrBankReadonly = document.getElementById('ocr-bank-readonly');
             const bankDropdownContainer = document.getElementById('bank-dropdown-container');
             const labelBank = document.getElementById('label-bank');
