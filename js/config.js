@@ -14,6 +14,10 @@ const p3 = 'D3YGfM9F344I-';
 const p4 = 'tgSUKCkVn11_FVyK9Vw';
 window.GEMINI_API_KEY = p1 + p2 + p3 + p4;
 
+// --- Google Cloud Vision API ---
+// Ganti dengan API Key Google Cloud Anda yang memiliki akses Cloud Vision API
+window.GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyANY1iTE7hUKekW1e0MBPB0oZFpUSXJLOs';
+
 // Inisialisasi client dengan pengecekan aman
 try {
     if (typeof window.supabase !== 'undefined') {

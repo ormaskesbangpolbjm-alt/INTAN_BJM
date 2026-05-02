@@ -194,28 +194,137 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     /**
-     * Kirim gambar ke Local Backend (Chandra OCR Python API)
+     * Parsing Text hasil Google Cloud Vision
      */
-    async function scanWithLocalOCR(dataUrl, docType) {
+    function parseVisionText(text, docType) {
+        let result = {};
+        const lines = text.split('\n').map(l => l.trim().toUpperCase());
+        const fullText = text.toUpperCase();
+
+        if (docType === 'ktp') {
+            let nik = '', nama = '', alamat = '', jk = '';
+            
+            // Ekstrak NIK (16 digit)
+            const nikMatch = text.match(/\b\d{16}\b/);
+            if (nikMatch) nik = nikMatch[0];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Ekstrak Nama
+                if ((line.includes('NAMA') || line.includes('NAMA:')) && !nama) {
+                    nama = line.replace(/.*NAMA[\s:]*/, '').replace(/[^A-Z\s]/g, '').trim();
+                    if (!nama && i + 1 < lines.length) {
+                        nama = lines[i+1].replace(/[^A-Z\s]/g, '').trim();
+                    }
+                }
+                
+                // Ekstrak Alamat
+                if ((line.includes('ALAMAT') || line.includes('ALAMAT:')) && !alamat) {
+                    alamat = line.replace(/.*ALAMAT[\s:]*/, '').trim();
+                    if (!alamat && i + 1 < lines.length) alamat = lines[i+1].trim();
+                }
+                
+                // Ekstrak Jenis Kelamin
+                if (!jk) {
+                    if (line.includes('LAKI') || line.includes('LELAKI')) jk = 'Laki-laki';
+                    else if (line.includes('PEREMPUAN')) jk = 'Perempuan';
+                }
+            }
+            result = { nik, nama, alamat, jenis_kelamin: jk };
+        } 
+        else if (docType === 'npwp') {
+            let npwp = '';
+            // Mencari format NPWP, contoh: 99.999.999.9-999.999
+            const npwpMatch = text.match(/\b\d{2}[\.\s]?\d{3}[\.\s]?\d{3}[\.\s]?\d{1}[\-\s]?\d{3}[\.\s]?\d{3}\b/);
+            if (npwpMatch) {
+                npwp = npwpMatch[0].replace(/[^0-9]/g, ''); // Ambil hanya angka
+                if (npwp.length === 15) {
+                    npwp = `${npwp.substring(0,2)}.${npwp.substring(2,5)}.${npwp.substring(5,8)}.${npwp.substring(8,9)}-${npwp.substring(9,12)}.${npwp.substring(12,15)}`;
+                }
+            }
+            result = { npwp };
+        }
+        else if (docType === 'rekening') {
+            let no_rekening = '', bank = '';
+            
+            // Ekstrak no rekening: cari deretan angka panjang, minimal 9 digit
+            const numbers = text.match(/\b(?:\d[ -]*){9,20}\b/g);
+            if (numbers) {
+                no_rekening = numbers[0].replace(/[^0-9]/g, '');
+            }
+
+            // Tebak Bank
+            if (fullText.includes('BCA') || fullText.includes('CENTRAL ASIA')) bank = 'BCA';
+            else if (fullText.includes('MANDIRI')) bank = 'Mandiri';
+            else if (fullText.includes('BRI') || fullText.includes('RAKYAT INDONESIA')) bank = 'BRI';
+            else if (fullText.includes('BNI') || fullText.includes('NEGARA INDONESIA')) bank = 'BNI';
+            else if (fullText.includes('BSI') || fullText.includes('SYARIAH INDONESIA')) bank = 'BSI';
+            else if (fullText.includes('KALSEL')) bank = 'Bank Kalsel';
+            else if (fullText.includes('BJB')) bank = 'BJB';
+            else if (fullText.includes('BPD')) bank = 'BPD';
+            
+            result = { no_rekening, bank };
+        }
+
+        return result;
+    }
+
+    /**
+     * Kirim gambar ke Google Cloud Vision API
+     */
+    async function scanWithGoogleVision(dataUrl, docType) {
         if (!dataUrl) return '{}';
 
+        // Pastikan API Key ada
+        const apiKey = window.GOOGLE_CLOUD_VISION_API_KEY;
+        if (!apiKey || apiKey === 'YOUR_GOOGLE_CLOUD_API_KEY_HERE') {
+            throw new Error('Google Cloud Vision API Key belum dikonfigurasi. Silakan isi di config.js');
+        }
+
+        // Ambil base64 string tanpa prefix "data:image/jpeg;base64,"
+        const base64Image = dataUrl.split(',')[1];
+        if (!base64Image) {
+            throw new Error('Format gambar tidak valid');
+        }
+
+        const endpoint = `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`;
+        const payload = {
+            requests: [
+                {
+                    image: { content: base64Image },
+                    features: [ { type: "DOCUMENT_TEXT_DETECTION" } ]
+                }
+            ]
+        };
+
         try {
-            const response = await fetch('http://localhost:8080/api/scan', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    image_base64: dataUrl,
-                    doc_type: docType
-                })
+                body: JSON.stringify(payload)
             });
             
             if (!response.ok) {
                 const errText = await response.text();
-                throw new Error(`Backend OCR API Error ${response.status}: ${errText}`);
+                throw new Error(`Google Vision API Error ${response.status}: ${errText}`);
             }
 
-            const result = await response.json();
-            return JSON.stringify(result); // Karena pemanggil ekspektasi format string JSON
+            const data = await response.json();
+            const textAnnotation = data.responses[0].fullTextAnnotation;
+            
+            if (!textAnnotation || !textAnnotation.text) {
+                console.warn('Google Vision tidak menemukan teks pada ' + docType);
+                return '{}';
+            }
+
+            const extractedText = textAnnotation.text;
+            console.log(`=== RAW VISION TEXT (${docType}) ===\n`, extractedText);
+
+            const parsedResult = parseVisionText(extractedText, docType);
+            console.log(`=== PARSED JSON (${docType}) ===\n`, parsedResult);
+
+            return JSON.stringify(parsedResult);
         } catch (err) {
             throw err;
         }
@@ -277,8 +386,8 @@ document.addEventListener('DOMContentLoaded', function () {
             setLoadingState('(2/3) AI Membaca KTP...');
             let foundNik = '', foundNama = '', foundAlamat = '', foundJk = '';
             try {
-                const ktpText = await scanWithLocalOCR(imgKtp, 'ktp');
-                console.log('=== LOCAL OCR KTP ===\n', ktpText);
+                const ktpText = await scanWithGoogleVision(imgKtp, 'ktp');
+                console.log('=== VISION API KTP ===\n', ktpText);
                 const d = JSON.parse(ktpText);
                 foundNik = d.nik || '';
                 foundNama = d.nama || '';
@@ -298,8 +407,8 @@ document.addEventListener('DOMContentLoaded', function () {
             let foundNorek = '';
             let foundBank = '';
             try {
-                const rekText = await scanWithLocalOCR(imgRekening, 'rekening');
-                console.log('=== LOCAL OCR REKENING ===\n', rekText);
+                const rekText = await scanWithGoogleVision(imgRekening, 'rekening');
+                console.log('=== VISION API REKENING ===\n', rekText);
                 const d = JSON.parse(rekText);
                 foundNorek = d.no_rekening || '';
                 foundBank = d.bank || '';
@@ -316,8 +425,8 @@ document.addEventListener('DOMContentLoaded', function () {
             let foundNpwp = '';
             if (fileNpwp && imgNpwp) {
                 try {
-                    const npwpText = await scanWithLocalOCR(imgNpwp, 'npwp');
-                    console.log('=== LOCAL OCR NPWP ===\n', npwpText);
+                    const npwpText = await scanWithGoogleVision(imgNpwp, 'npwp');
+                    console.log('=== VISION API NPWP ===\n', npwpText);
                     const d = JSON.parse(npwpText);
                     foundNpwp = d.npwp || '';
                 } catch (err) {
